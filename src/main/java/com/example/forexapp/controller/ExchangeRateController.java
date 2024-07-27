@@ -15,9 +15,7 @@ public class ExchangeRateController implements ExchangeRatesApi {
 
     @Override
     public ExchangeRateResponse getExchangeRate(String fromCurrency, String toCurrency) {
-        ExchangeRateRequest request = new ExchangeRateRequest();
-        request.setFromCurrency(fromCurrency);
-        request.setToCurrency(toCurrency);
+        ExchangeRateRequest request = new ExchangeRateRequest(fromCurrency, toCurrency);
         return exchangeRateService.getExchangeRate(request);
     }
 }
