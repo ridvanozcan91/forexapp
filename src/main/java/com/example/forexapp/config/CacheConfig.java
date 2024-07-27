@@ -15,12 +15,12 @@ public class CacheConfig {
     @Bean
     public CaffeineCacheManager cacheManager() {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager("exchangeRates");
-        cacheManager.setCaffeine(cacheBuilder());
+        cacheManager.registerCustomCache("exchangeRates", exchangeRatesCacheBuilder().build());
         return cacheManager;
     }
 
     @Bean
-    public Caffeine<Object, Object> cacheBuilder() {
+    public Caffeine<Object, Object> exchangeRatesCacheBuilder() {
         return Caffeine.newBuilder()
                 .expireAfterWrite(1, TimeUnit.MINUTES)
                 .maximumSize(100);
