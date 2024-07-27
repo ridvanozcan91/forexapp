@@ -9,6 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import static com.example.forexapp.util.ConversionUtil.buildExchangeRateResponse;
+import static com.example.forexapp.util.ConversionUtil.calculateRate;
+
 @Service
 @RequiredArgsConstructor
 public class ExchangeRateService {
@@ -21,14 +24,11 @@ public class ExchangeRateService {
         FixerResponse response = fixerApiClient.getExchangeRate(symbols);
 
         if (response != null && response.isSuccess() && response.getRates() != null) {
-            double rate = response.getRates().get(request.getToCurrency()) / response.getRates().get(request.getFromCurrency());
-            ExchangeRateResponse exchangeRateResponse = new ExchangeRateResponse();
-            exchangeRateResponse.setFromCurrency(request.getFromCurrency());
-            exchangeRateResponse.setToCurrency(request.getToCurrency());
-            exchangeRateResponse.setRate(rate);
-            return exchangeRateResponse;
+            double rate = calculateRate(request.getFromCurrency(), request.getToCurrency(), response.getRates());
+            return buildExchangeRateResponse(request, rate);
         } else {
             throw new ResourceNotFoundException("Exchange rate could not be fetched");
         }
     }
+
 }

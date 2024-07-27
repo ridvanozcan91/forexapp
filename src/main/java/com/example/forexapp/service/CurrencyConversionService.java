@@ -8,7 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import static com.example.forexapp.util.ConversionUtil.buildConversionResponse;
+import static com.example.forexapp.util.ConversionUtil.generateTranscationId;
 
 @Service
 @RequiredArgsConstructor
@@ -19,27 +20,10 @@ public class CurrencyConversionService {
     private final CurrencyConversionRepository currencyConversionRepository;
 
     public CurrencyConversionResponse convertCurrency(CurrencyConversionRequest request) {
-        ExchangeRateRequest exchangeRateRequest = new ExchangeRateRequest();
-        exchangeRateRequest.setFromCurrency(request.getFromCurrency());
-        exchangeRateRequest.setToCurrency(request.getToCurrency());
-        ExchangeRateResponse exchangeRateResponse = exchangeRateService.getExchangeRate(exchangeRateRequest);
-
-        double convertedAmount = request.getAmount() * exchangeRateResponse.getRate();
-        String transactionId = UUID.randomUUID().toString();
-
-        CurrencyConversion currencyConversion = new CurrencyConversion();
-        currencyConversion.setFromCurrency(request.getFromCurrency());
-        currencyConversion.setToCurrency(request.getToCurrency());
-        currencyConversion.setAmount(request.getAmount());
-        currencyConversion.setConvertedAmount(convertedAmount);
-        currencyConversion.setTransactionId(transactionId);
-        currencyConversionRepository.save(currencyConversion);
-
-        CurrencyConversionResponse response = new CurrencyConversionResponse();
-        response.setConvertedAmount(convertedAmount);
-        response.setTransactionId(transactionId);
-
-        return response;
+        double convertedAmount = calculateConvertedAmount(request);
+        String transactionId = generateTranscationId();
+        persistConversion(request, convertedAmount, transactionId);
+        return buildConversionResponse(convertedAmount, transactionId);
     }
 
     public ConversionHistoryResponse getConversionHistory(ConversionHistoryRequest request, Pageable pageable) {
@@ -51,9 +35,23 @@ public class CurrencyConversionService {
         } else {
             conversions = currencyConversionRepository.findByTransactionId(request.getTransactionId(), pageable);
         }
+        return new ConversionHistoryResponse(conversions);
+    }
 
-        ConversionHistoryResponse response = new ConversionHistoryResponse();
-        response.setConversions(conversions);
-        return response;
+    private void persistConversion(CurrencyConversionRequest request, double convertedAmount, String transactionId) {
+        CurrencyConversion currencyConversion = new CurrencyConversion();
+        currencyConversion.setFromCurrency(request.getFromCurrency());
+        currencyConversion.setToCurrency(request.getToCurrency());
+        currencyConversion.setAmount(request.getAmount());
+        currencyConversion.setConvertedAmount(convertedAmount);
+        currencyConversion.setTransactionId(transactionId);
+        currencyConversionRepository.save(currencyConversion);
+    }
+
+    private double calculateConvertedAmount(CurrencyConversionRequest request) {
+        ExchangeRateResponse exchangeRateResponse = exchangeRateService.getExchangeRate(
+                new ExchangeRateRequest(request.getFromCurrency(), request.getToCurrency())
+        );
+        return request.getAmount() * exchangeRateResponse.getRate();
     }
 }
